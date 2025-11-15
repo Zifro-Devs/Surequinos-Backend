@@ -38,6 +38,12 @@ public interface UserRepository extends JpaRepository<User, UUID> {
      */
     @Query(value = "SELECT COUNT(*) > 0 FROM users WHERE document_number = :documentNumber AND (:excludeId IS NULL OR id != :excludeId)", nativeQuery = true)
     boolean existsByDocumentNumberAndIdNot(@Param("documentNumber") String documentNumber, @Param("excludeId") UUID excludeId);
+
+    /**
+     * Busca un usuario por su email y número de documento
+     */
+    @Query(value = "SELECT * FROM users WHERE email = :email AND document_number = :documentNumber", nativeQuery = true)
+    Optional<User> findByEmailAndDocumentNumber(@Param("email") String email, @Param("documentNumber") String documentNumber);
 }
 
 

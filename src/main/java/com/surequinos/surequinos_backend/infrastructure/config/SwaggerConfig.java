@@ -25,9 +25,35 @@ public class SwaggerConfig {
         return new OpenAPI()
             .info(new Info()
                 .title("Surequinos Ecommerce API")
-                .description("API REST para el ecommerce de productos de talabartería Surequinos. " +
-                           "Incluye gestión completa de productos, variantes, categorías y stock.")
-                .version("1.0.0")
+                .description("""
+                    API REST completa para el ecommerce de productos de talabartería Surequinos.
+                    
+                    ## Funcionalidades principales:
+                    
+                    ### Gestión de Productos
+                    - Productos con variantes (color, talla, tipo)
+                    - Control de stock en tiempo real
+                    - Gestión de imágenes con Cloudflare R2
+                    - Categorías jerárquicas
+                    
+                    ### Gestión de Órdenes
+                    - Creación de órdenes con múltiples productos
+                    - Cálculo automático de subtotales y totales
+                    - Gestión de descuentos y costos de envío
+                    - Estados de orden y pago configurables
+                    - Reducción automática de stock
+                    
+                    ### Gestión de Usuarios
+                    - Sistema de usuarios con roles (ADMIN, CLIENTE)
+                    - Autenticación y autorización
+                    - Gestión de clientes y administradores
+                    
+                    ### Otros
+                    - Documentación completa con Swagger
+                    - Manejo centralizado de excepciones
+                    - Validaciones robustas
+                    """)
+                .version("2.0.0")
                 .contact(new Contact()
                     .name("Equipo Surequinos")
                     .email("contacto@surequinos.com")

@@ -44,14 +44,21 @@ public interface CategoryRepository extends JpaRepository<Category, UUID> {
 
     /**
      * Obtiene categorías con conteo de productos
+     * IMPORTANTE: El orden de las columnas debe coincidir con mapCategoryWithProductCount
+     * Orden: id, parent_id, name, slug, display_order, created_at, product_count
      */
     @Query(value = """
-        SELECT c.*, 
+        SELECT c.id, 
+               c.parent_id, 
+               c.name, 
+               c.slug, 
+               c.display_order, 
+               c.created_at,
                COALESCE(COUNT(p.id), 0) as product_count
         FROM categories c
         LEFT JOIN products p ON c.id = p.category_id AND p.is_active = true
         WHERE c.parent_id IS NULL
-        GROUP BY c.id, c.name, c.slug, c.display_order, c.created_at
+        GROUP BY c.id, c.parent_id, c.name, c.slug, c.display_order, c.created_at
         ORDER BY c.display_order ASC, c.name ASC
         """, nativeQuery = true)
     List<Object[]> findMainCategoriesWithProductCount();

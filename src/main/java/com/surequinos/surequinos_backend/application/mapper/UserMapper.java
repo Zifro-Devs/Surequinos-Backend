@@ -18,6 +18,7 @@ public interface UserMapper {
     /**
      * Convierte una entidad User a UserDto
      */
+    @Mapping(target = "role", ignore = true)
     UserDto toDto(User user);
 
     /**
@@ -29,9 +30,11 @@ public interface UserMapper {
      * Convierte un CreateUserRequest a entidad User
      */
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "roleId", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "orders", ignore = true)
+    @Mapping(target = "role", ignore = true)
     User toEntity(CreateUserRequest request);
 }
 

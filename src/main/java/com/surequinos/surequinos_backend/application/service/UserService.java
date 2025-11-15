@@ -3,10 +3,14 @@ package com.surequinos.surequinos_backend.application.service;
 import com.surequinos.surequinos_backend.application.dto.UserDto;
 import com.surequinos.surequinos_backend.application.dto.request.CreateUserRequest;
 import com.surequinos.surequinos_backend.application.mapper.UserMapper;
+import com.surequinos.surequinos_backend.domain.entity.Role;
 import com.surequinos.surequinos_backend.domain.entity.User;
+import com.surequinos.surequinos_backend.domain.enums.UserRole;
+import com.surequinos.surequinos_backend.infrastructure.repository.RoleRepository;
 import com.surequinos.surequinos_backend.infrastructure.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,7 +28,26 @@ import java.util.UUID;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
     private final UserMapper userMapper;
+    private final PasswordEncoder passwordEncoder;
+
+    /**
+     * Enriquece un UserDto con información del rol
+     */
+    private UserDto enrichUserDto(User user) {
+        UserDto dto = userMapper.toDto(user);
+        
+        // Enriquecer con información del rol
+        if (user.getRole() != null) {
+            dto.setRole(user.getRole().getName());
+        } else if (user.getRoleId() != null) {
+            roleRepository.findById(user.getRoleId())
+                .ifPresent(role -> dto.setRole(role.getName()));
+        }
+        
+        return dto;
+    }
 
     /**
      * Obtiene todos los usuarios
@@ -33,7 +56,9 @@ public class UserService {
         log.debug("Obteniendo todos los usuarios");
         
         List<User> users = userRepository.findAll();
-        return userMapper.toDtoList(users);
+        return users.stream()
+            .map(this::enrichUserDto)
+            .toList();
     }
 
     /**
@@ -43,7 +68,7 @@ public class UserService {
         log.debug("Buscando usuario por ID: {}", id);
         
         return userRepository.findById(id)
-            .map(userMapper::toDto);
+            .map(this::enrichUserDto);
     }
 
     /**
@@ -53,7 +78,7 @@ public class UserService {
         log.debug("Buscando usuario por email: {}", email);
         
         return userRepository.findByEmail(email)
-            .map(userMapper::toDto);
+            .map(this::enrichUserDto);
     }
 
     /**
@@ -63,7 +88,25 @@ public class UserService {
         log.debug("Buscando usuario por número de documento: {}", documentNumber);
         
         return userRepository.findByDocumentNumber(documentNumber)
-            .map(userMapper::toDto);
+            .map(this::enrichUserDto);
+    }
+
+    /**
+     * Obtiene o crea un rol basado en el enum UserRole
+     */
+    private UUID getOrCreateRoleId(UserRole userRole) {
+        return roleRepository.findByUserRole(userRole)
+            .map(Role::getId)
+            .orElseGet(() -> {
+                log.warn("Rol {} no encontrado en la base de datos. Creándolo...", userRole);
+                Role newRole = Role.builder()
+                    .name(userRole)
+                    .description(userRole.getDisplayName())
+                    .build();
+                Role savedRole = roleRepository.save(newRole);
+                log.info("Rol {} creado con ID: {}", userRole, savedRole.getId());
+                return savedRole.getId();
+            });
     }
 
     /**
@@ -85,12 +128,23 @@ public class UserService {
             }
         }
         
+        // Obtener o crear el rol
+        UUID roleId = getOrCreateRoleId(request.getRole());
+        
+        // Crear el usuario
         User user = userMapper.toEntity(request);
+        user.setRoleId(roleId);
+        
+        // Encriptar la contraseña antes de guardar
+        String encryptedPassword = passwordEncoder.encode(request.getPassword());
+        user.setPassword(encryptedPassword);
+        
         User savedUser = userRepository.save(user);
         
-        log.info("Usuario creado exitosamente: {} (ID: {})", savedUser.getEmail(), savedUser.getId());
+        log.info("Usuario creado exitosamente: {} (ID: {}) con rol: {}", 
+                savedUser.getEmail(), savedUser.getId(), request.getRole());
         
-        return userMapper.toDto(savedUser);
+        return enrichUserDto(savedUser);
     }
 
     /**
@@ -115,19 +169,26 @@ public class UserService {
             }
         }
         
+        // Obtener o crear el rol
+        UUID roleId = getOrCreateRoleId(request.getRole());
+        
         // Actualizar campos
         existingUser.setName(request.getName());
         existingUser.setEmail(request.getEmail());
         existingUser.setPhoneNumber(request.getPhoneNumber());
-        existingUser.setPassword(request.getPassword());
-        existingUser.setRoleId(request.getRoleId());
+        
+        // Encriptar la contraseña antes de actualizar (siempre se encripta, incluso si es la misma)
+        String encryptedPassword = passwordEncoder.encode(request.getPassword());
+        existingUser.setPassword(encryptedPassword);
+        
+        existingUser.setRoleId(roleId);
         existingUser.setDocumentNumber(request.getDocumentNumber());
         
         User savedUser = userRepository.save(existingUser);
         
         log.info("Usuario actualizado exitosamente: {} (ID: {})", savedUser.getEmail(), savedUser.getId());
         
-        return userMapper.toDto(savedUser);
+        return enrichUserDto(savedUser);
     }
 
     /**

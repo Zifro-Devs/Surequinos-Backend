@@ -56,6 +56,11 @@ public class User {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    // Relación con rol
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "role_id", insertable = false, updatable = false)
+    private Role role;
+
     // Relación con órdenes
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
     private List<Order> orders;

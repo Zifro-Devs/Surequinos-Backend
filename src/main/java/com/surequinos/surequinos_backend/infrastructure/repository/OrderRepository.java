@@ -66,8 +66,11 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
 
     /**
      * Obtiene todas las órdenes ordenadas por fecha de creación
+     * Usa query nativa simple sin ORDER BY para permitir sorting dinámico del Pageable
      */
-    @Query(value = "SELECT * FROM orders ORDER BY created_at DESC", nativeQuery = true)
+    @Query(value = "SELECT * FROM orders", 
+        countQuery = "SELECT COUNT(*) FROM orders",
+        nativeQuery = true)
     Page<Order> findAllOrderedByCreatedAt(Pageable pageable);
 
     /**
@@ -90,5 +93,30 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
         """, nativeQuery = true)
     List<Order> findByDateRange(@Param("startDate") java.time.LocalDateTime startDate, 
                                 @Param("endDate") java.time.LocalDateTime endDate);
+
+    /**
+     * Busca órdenes por múltiples criterios (ID de orden, nombre, email, documento, teléfono)
+     * Todos los parámetros son opcionales. Si se proporcionan, se aplican como filtros AND
+     */
+    @Query(value = """
+        SELECT DISTINCT o.* FROM orders o
+        INNER JOIN users u ON o.user_id = u.id
+        WHERE 
+            (:orderId IS NULL OR o.id = CAST(:orderId AS UUID)) AND
+            (:orderNumber IS NULL OR o.order_number LIKE CONCAT('%', :orderNumber, '%')) AND
+            (:clientName IS NULL OR LOWER(u.name) LIKE LOWER(CONCAT('%', :clientName, '%'))) AND
+            (:email IS NULL OR LOWER(u.email) LIKE LOWER(CONCAT('%', :email, '%'))) AND
+            (:documentNumber IS NULL OR u.document_number LIKE CONCAT('%', :documentNumber, '%')) AND
+            (:phoneNumber IS NULL OR u.phone_number LIKE CONCAT('%', :phoneNumber, '%'))
+        ORDER BY o.created_at DESC
+        """, nativeQuery = true)
+    List<Order> searchOrders(
+        @Param("orderId") String orderId,
+        @Param("orderNumber") String orderNumber,
+        @Param("clientName") String clientName,
+        @Param("email") String email,
+        @Param("documentNumber") String documentNumber,
+        @Param("phoneNumber") String phoneNumber
+    );
 }
 

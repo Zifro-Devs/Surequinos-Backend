@@ -1,12 +1,9 @@
 -- ============================================
--- CREACIÓN DE VISTA v_products_full
+-- VISTA: v_products_full
+-- Proporciona información completa de productos con variantes agregadas
 -- ============================================
 
--- Eliminar vista si existe
-DROP VIEW IF EXISTS v_products_full;
-
--- Crear vista con información completa de productos
-CREATE VIEW v_products_full AS
+CREATE OR REPLACE VIEW v_products_full AS
 SELECT 
     p.id,
     p.name,

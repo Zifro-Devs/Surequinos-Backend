@@ -70,8 +70,9 @@ public class ProductService {
     public Optional<ProductDto> getProductBySlug(String slug) {
         log.debug("Buscando producto por slug: {}", slug);
         
-        return productRepository.findProductFullBySlug(slug)
-            .map(this::mapProductFullView);
+        // Temporalmente usar el método simple hasta arreglar la vista
+        return productRepository.findBySlug(slug)
+            .map(this::enrichProductDto);
     }
 
     /**
@@ -276,6 +277,17 @@ public class ProductService {
      */
     private ProductDto mapProductFullView(Object[] result) {
         try {
+            // Validar que el array tenga el tamaño esperado
+            if (result == null || result.length < 16) {
+                log.error("Array de resultado inválido. Length: {}, Expected: 16", 
+                    result != null ? result.length : 0);
+                throw new RuntimeException("Datos de producto incompletos");
+            }
+            
+            // Log para debugging
+            log.debug("Mapeando producto desde vista. Array length: {}, ID: {}", 
+                result.length, result[0]);
+            
             ProductDto dto = ProductDto.builder()
                 .id((UUID) result[0])
                 .name((String) result[1])
@@ -318,10 +330,16 @@ public class ProductService {
             return dto;
             
         } catch (JsonProcessingException e) {
-            log.error("Error parseando variantes JSON para producto {}: {}", result[0], e.getMessage());
+            log.error("Error parseando variantes JSON para producto {}: {}", 
+                result != null && result.length > 0 ? result[0] : "unknown", e.getMessage());
             throw new RuntimeException("Error procesando datos del producto", e);
         } catch (Exception e) {
-            log.error("Error mapeando producto desde vista: {}", e.getMessage());
+            log.error("Error mapeando producto desde vista. Array length: {}, Error: {}", 
+                result != null ? result.length : 0, e.getMessage());
+            if (result != null && result.length > 0) {
+                log.error("Primer elemento del array: {} (tipo: {})", 
+                    result[0], result[0] != null ? result[0].getClass().getSimpleName() : "null");
+            }
             throw new RuntimeException("Error procesando datos del producto", e);
         }
     }

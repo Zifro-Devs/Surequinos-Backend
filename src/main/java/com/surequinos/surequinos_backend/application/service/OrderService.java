@@ -2,9 +2,11 @@ package com.surequinos.surequinos_backend.application.service;
 
 import com.surequinos.surequinos_backend.application.dto.OrderDto;
 import com.surequinos.surequinos_backend.application.dto.OrderItemDto;
+import com.surequinos.surequinos_backend.application.dto.request.CreateAddressRequest;
 import com.surequinos.surequinos_backend.application.dto.request.CreateOrderRequest;
 import com.surequinos.surequinos_backend.application.mapper.OrderItemMapper;
 import com.surequinos.surequinos_backend.application.mapper.OrderMapper;
+import com.surequinos.surequinos_backend.application.service.AddressService;
 import com.surequinos.surequinos_backend.domain.entity.Order;
 import com.surequinos.surequinos_backend.domain.entity.OrderItem;
 import com.surequinos.surequinos_backend.domain.entity.Role;
@@ -49,6 +51,7 @@ public class OrderService {
     private final OrderMapper orderMapper;
     private final OrderItemMapper orderItemMapper;
     private final PasswordEncoder passwordEncoder;
+    private final AddressService addressService;
 
     /**
      * Genera un número de orden único
@@ -128,6 +131,26 @@ public class OrderService {
             request.getClientName(),
             request.getClientPhoneNumber()
         );
+        
+        // Manejar dirección: prioridad a addressId sobre address
+        if (request.getAddressId() != null) {
+            // Validar que la dirección existe y pertenece al usuario
+            if (!addressService.validateAddressBelongsToUser(request.getAddressId(), userId)) {
+                throw new IllegalArgumentException("La dirección no existe o no pertenece al usuario");
+            }
+            log.info("Usando dirección existente (ID: {}) para usuario: {}", request.getAddressId(), userId);
+        } else if (request.getAddress() != null) {
+            // Crear nueva dirección solo si no se proporcionó addressId
+            try {
+                addressService.createAddressForOrder(userId, request.getAddress());
+                log.info("Dirección creada para usuario durante la creación de la orden: {}", userId);
+            } catch (Exception e) {
+                log.warn("Error al crear dirección durante la creación de la orden: {}. La orden se creará sin guardar la dirección.", e.getMessage());
+            }
+        } else {
+            // No se proporcionó addressId ni address, solo se usa shippingAddress como texto
+            log.debug("No se proporcionó dirección para guardar, usando solo shippingAddress como texto");
+        }
         
         // Validar y procesar items
         BigDecimal subtotal = BigDecimal.ZERO;

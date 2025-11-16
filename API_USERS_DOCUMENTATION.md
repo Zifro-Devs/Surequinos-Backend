@@ -13,6 +13,10 @@ Esta documentación describe todos los endpoints disponibles para la gestión de
 1. [Información General](#información-general)
 2. [Modelos de Datos](#modelos-de-datos)
 3. [Endpoints GET](#-endpoints-get)
+   - [Obtener Todos los Usuarios](#1-obtener-todos-los-usuarios)
+   - [Obtener Usuario por ID](#2-obtener-usuario-por-id)
+   - [Obtener Usuario por Email](#3-obtener-usuario-por-email-para-precargar-formulario-de-compra) ⭐ **Recomendado para precargar formulario de compra**
+   - [Búsqueda Unificada de Usuarios](#4-búsqueda-unificada-de-usuarios)
 4. [Endpoints POST](#-endpoints-post)
 5. [Endpoints PUT](#-endpoints-put)
 6. [Endpoints DELETE](#-endpoints-delete)
@@ -213,14 +217,16 @@ curl http://localhost:8080/api/users/123e4567-e89b-12d3-a456-426614174000
 
 ---
 
-### 3. Obtener Usuario por Email
+### 3. Obtener Usuario por Email ⭐ **Para Precargar Formulario de Compra**
 
 **Endpoint:** `GET /users/email/{email}`
 
-**Descripción:** Busca un usuario específico por su correo electrónico.
+**Descripción:** Busca un usuario específico por su correo electrónico y retorna toda su información. **Este endpoint es ideal para precargar el formulario de compra con la información del cliente** (nombre, email, teléfono, documento, etc.).
+
+**⚠️ Importante:** Este endpoint **NO incluye las direcciones** del usuario. Las direcciones se obtienen por separado usando el endpoint: `GET /addresses/user/{email}`
 
 **Parámetros de Path:**
-- `email` (String, requerido): Email del usuario
+- `email` (String, requerido): Email del usuario. Debe estar codificado en la URL si contiene caracteres especiales (ej: `@` se codifica como `%40`)
 
 **Ejemplo de Request:**
 ```http
@@ -229,7 +235,7 @@ GET /api/users/email/juan.perez@example.com
 
 **cURL Ejemplo:**
 ```bash
-curl http://localhost:8080/api/users/email/juan.perez@example.com
+curl "http://localhost:8080/api/users/email/juan.perez@example.com"
 ```
 
 **Respuesta Exitosa (200 OK):**
@@ -256,10 +262,68 @@ curl http://localhost:8080/api/users/email/juan.perez@example.com
 **Notas Importantes:**
 - Solo se retornan usuarios con status `ACTIVE` o `INACTIVE`
 - Los usuarios con status `DELETED` retornan `404 Not Found`
-
-**Notas Importantes:**
 - El email debe coincidir exactamente (case-sensitive)
 - El email debe estar codificado en la URL si contiene caracteres especiales
+- **No incluye direcciones**: Las direcciones se obtienen por separado con `GET /addresses/user/{email}`
+
+**📋 Caso de Uso: Precargar Formulario de Compra**
+
+Este endpoint es perfecto para precargar el formulario de compra cuando el usuario ingresa su email. El flujo recomendado es:
+
+1. **Obtener información del usuario**: `GET /users/email/{email}`
+   - Precarga: nombre, email, teléfono, documento
+   
+2. **Obtener direcciones del usuario**: `GET /addresses/user/{email}` (endpoint independiente)
+   - Precarga: lista de direcciones guardadas
+
+**Ejemplo de integración en frontend:**
+```typescript
+// Precargar formulario de compra
+async function preloadCheckoutForm(email: string) {
+  try {
+    // 1. Obtener información del usuario
+    const userResponse = await fetch(
+      `http://localhost:8080/api/users/email/${encodeURIComponent(email)}`
+    );
+    
+    if (userResponse.ok) {
+      const user = await userResponse.json();
+      
+      // Precargar campos del formulario
+      setFormData({
+        clientName: user.name,
+        email: user.email,
+        documentNumber: user.documentNumber,
+        clientPhoneNumber: user.phoneNumber
+      });
+      
+      // 2. Obtener direcciones (endpoint independiente)
+      const addressesResponse = await fetch(
+        `http://localhost:8080/api/addresses/user/${encodeURIComponent(email)}`
+      );
+      
+      if (addressesResponse.ok) {
+        const addresses = await addressesResponse.json();
+        setUserAddresses(addresses);
+        
+        // Si hay una dirección por defecto, precargarla
+        const defaultAddress = addresses.find(addr => addr.isDefault);
+        if (defaultAddress) {
+          setSelectedAddressId(defaultAddress.id);
+          setShippingAddress(
+            `${defaultAddress.street}, ${defaultAddress.city}`
+          );
+        }
+      }
+    } else if (userResponse.status === 404) {
+      // Usuario no existe, formulario vacío
+      console.log("Usuario no encontrado, formulario en blanco");
+    }
+  } catch (error) {
+    console.error("Error precargando formulario:", error);
+  }
+}
+```
 
 ---
 
@@ -623,6 +687,14 @@ curl -X DELETE http://localhost:8080/api/users/123e4567-e89b-12d3-a456-426614174
 3. GET /users/search?name={nombre} - Buscar por nombre parcial
 ```
 
+### Flujo 2.1: Precargar Formulario de Compra
+```
+1. GET /users/email/{email} - Obtener información del usuario (nombre, email, teléfono, documento)
+2. GET /addresses/user/{email} - Obtener direcciones del usuario (endpoint independiente)
+3. Precargar formulario con la información obtenida
+4. Si hay dirección por defecto, seleccionarla automáticamente
+```
+
 ### Flujo 3: Búsqueda Unificada de Usuarios
 ```
 1. GET /users/search?roles=CLIENTE&statuses=ACTIVE - Solo clientes activos (sección de clientes)
@@ -725,7 +797,7 @@ async function getUserById(id: string) {
   throw new Error(`Error: ${response.status}`);
 }
 
-// Obtener usuario por email
+// Obtener usuario por email (útil para precargar formulario de compra)
 async function getUserByEmail(email: string) {
   const encodedEmail = encodeURIComponent(email);
   const response = await fetch(`${API_BASE_URL}/users/email/${encodedEmail}`);
@@ -736,6 +808,33 @@ async function getUserByEmail(email: string) {
     return null;
   }
   throw new Error(`Error: ${response.status}`);
+}
+
+// Precargar formulario de compra con información del usuario
+async function preloadCheckoutForm(email: string) {
+  try {
+    // 1. Obtener información del usuario
+    const user = await getUserByEmail(email);
+    
+    if (user) {
+      // 2. Obtener direcciones (endpoint independiente)
+      const addressesResponse = await fetch(
+        `${API_BASE_URL}/addresses/user/${encodeURIComponent(email)}`
+      );
+      const addresses = addressesResponse.ok ? await addressesResponse.json() : [];
+      
+      return {
+        user,
+        addresses,
+        defaultAddress: addresses.find((addr: any) => addr.isDefault)
+      };
+    }
+    
+    return null; // Usuario no encontrado
+  } catch (error) {
+    console.error("Error precargando formulario:", error);
+    throw error;
+  }
 }
 
 // Búsqueda unificada de usuarios
@@ -863,7 +962,7 @@ const getUserById = async (id: string) => {
   }
 };
 
-// Obtener usuario por email
+// Obtener usuario por email (útil para precargar formulario de compra)
 const getUserByEmail = async (email: string) => {
   try {
     const response = await api.get(`/users/email/${encodeURIComponent(email)}`);
@@ -872,6 +971,31 @@ const getUserByEmail = async (email: string) => {
     if (error.response?.status === 404) {
       return null;
     }
+    throw error;
+  }
+};
+
+// Precargar formulario de compra con información del usuario
+const preloadCheckoutForm = async (email: string) => {
+  try {
+    // 1. Obtener información del usuario
+    const user = await getUserByEmail(email);
+    
+    if (user) {
+      // 2. Obtener direcciones (endpoint independiente)
+      const addressesResponse = await api.get(`/addresses/user/${encodeURIComponent(email)}`);
+      const addresses = addressesResponse.data || [];
+      
+      return {
+        user,
+        addresses,
+        defaultAddress: addresses.find((addr: any) => addr.isDefault)
+      };
+    }
+    
+    return null; // Usuario no encontrado
+  } catch (error) {
+    console.error("Error precargando formulario:", error);
     throw error;
   }
 };

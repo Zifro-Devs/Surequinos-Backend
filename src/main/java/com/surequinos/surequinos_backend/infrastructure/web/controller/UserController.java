@@ -5,6 +5,7 @@ import com.surequinos.surequinos_backend.application.dto.request.CreateUserReque
 import com.surequinos.surequinos_backend.application.service.UserService;
 import com.surequinos.surequinos_backend.domain.enums.UserRole;
 import com.surequinos.surequinos_backend.domain.enums.UserStatus;
+import com.surequinos.surequinos_backend.infrastructure.web.exception.ErrorResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -17,7 +18,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -80,20 +83,31 @@ public class UserController {
         @ApiResponse(responseCode = "500", description = "Error interno del servidor")
     })
     @GetMapping("/email/{email}")
-    public ResponseEntity<UserDto> getUserByEmail(
+    public ResponseEntity<?> getUserByEmail(
             @Parameter(description = "Email del usuario")
             @PathVariable String email) {
         log.info("GET /users/email/{} - Buscando usuario por email", email);
         
-        return userService.getUserByEmail(email)
-            .map(user -> {
-                log.info("Usuario encontrado: {}", user.getEmail());
-                return ResponseEntity.ok(user);
-            })
-            .orElseGet(() -> {
-                log.warn("Usuario no encontrado con email: {}", email);
-                return ResponseEntity.notFound().build();
-            });
+        Optional<UserDto> userOptional = userService.getUserByEmail(email);
+        
+        if (userOptional.isPresent()) {
+            UserDto user = userOptional.get();
+            log.info("Usuario encontrado: {}", user.getEmail());
+            return ResponseEntity.ok(user);
+        } else {
+            log.warn("Usuario no encontrado con email: {}", email);
+            
+            // Retornar un ErrorResponse estructurado para que el frontend pueda parsearlo
+            ErrorResponse errorResponse = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.NOT_FOUND.value())
+                .error("Not Found")
+                .message("Usuario no encontrado con email: " + email)
+                .build();
+            
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(errorResponse);
+        }
     }
 
     @Operation(

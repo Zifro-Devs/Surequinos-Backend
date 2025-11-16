@@ -53,13 +53,20 @@ public class CreateOrderRequest {
     private String paymentMethod;
 
     @NotBlank(message = "La dirección de envío es obligatoria")
-    @Schema(description = "Dirección de envío", example = "Calle 123 #45-67, Barrio Centro")
+    @Schema(description = "Dirección de envío (texto completo)", example = "Calle 123 #45-67, Barrio Centro")
     private String shippingAddress;
 
     @PositiveOrZero(message = "El valor del envío no puede ser negativo")
     @Schema(description = "Valor del envío", example = "15000.00")
     @Builder.Default
     private BigDecimal shippingValue = BigDecimal.ZERO;
+
+    @Schema(description = "ID de una dirección existente del usuario (opcional). Si se proporciona, se usará esta dirección y NO se creará una nueva. Tiene prioridad sobre el campo 'address'.")
+    private java.util.UUID addressId;
+
+    @Schema(description = "Datos de la dirección para guardar en el perfil del usuario (opcional). Solo se usa si NO se proporciona 'addressId'. Si se proporciona, se creará una dirección asociada al usuario.")
+    @Valid
+    private CreateAddressRequest address;
 
     @NotEmpty(message = "La orden debe tener al menos un item")
     @Schema(description = "Items de la orden")

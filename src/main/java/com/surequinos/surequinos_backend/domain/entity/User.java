@@ -70,6 +70,10 @@ public class User {
     // Relación con órdenes
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
     private List<Order> orders;
+
+    // Relación con direcciones
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
+    private List<Address> addresses;
 }
 
 

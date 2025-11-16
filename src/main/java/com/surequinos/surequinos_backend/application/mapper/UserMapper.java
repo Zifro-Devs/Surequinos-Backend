@@ -31,6 +31,7 @@ public interface UserMapper {
      */
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "roleId", ignore = true)
+    @Mapping(target = "status", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "orders", ignore = true)

@@ -1,5 +1,6 @@
 package com.surequinos.surequinos_backend.domain.entity;
 
+import com.surequinos.surequinos_backend.domain.enums.UserStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -47,6 +48,11 @@ public class User {
 
     @Column(name = "document_number", length = 50)
     private String documentNumber;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 20)
+    @Builder.Default
+    private UserStatus status = UserStatus.ACTIVE;
 
     @CreationTimestamp
     @Column(name = "created_at")

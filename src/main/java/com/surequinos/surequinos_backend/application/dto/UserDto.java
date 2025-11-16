@@ -1,6 +1,7 @@
 package com.surequinos.surequinos_backend.application.dto;
 
 import com.surequinos.surequinos_backend.domain.enums.UserRole;
+import com.surequinos.surequinos_backend.domain.enums.UserStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -45,6 +46,14 @@ public class UserDto {
 
     @Schema(description = "Número de documento de identidad", example = "1234567890")
     private String documentNumber;
+
+    @Schema(
+        description = "Estado del usuario. Valores: ACTIVE (Activo), INACTIVE (Inactivo), DELETED (Eliminado)", 
+        example = "ACTIVE", 
+        allowableValues = {"ACTIVE", "INACTIVE", "DELETED"},
+        type = "string"
+    )
+    private UserStatus status;
 
     @Schema(description = "Fecha de creación")
     private LocalDateTime createdAt;

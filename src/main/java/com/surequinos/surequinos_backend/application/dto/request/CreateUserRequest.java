@@ -32,8 +32,7 @@ public class CreateUserRequest {
     @Schema(description = "Número de teléfono celular", example = "+57 300 1234567")
     private String phoneNumber;
 
-    @NotBlank(message = "La contraseña es obligatoria")
-    @Schema(description = "Contraseña del usuario")
+    @Schema(description = "Contraseña del usuario. Obligatoria para crear usuario, opcional para actualizar (si está vacía, se mantiene la actual)")
     private String password;
 
     @NotNull(message = "El rol es obligatorio")

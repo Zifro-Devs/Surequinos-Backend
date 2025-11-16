@@ -3,6 +3,8 @@ package com.surequinos.surequinos_backend.infrastructure.web.controller;
 import com.surequinos.surequinos_backend.application.dto.UserDto;
 import com.surequinos.surequinos_backend.application.dto.request.CreateUserRequest;
 import com.surequinos.surequinos_backend.application.service.UserService;
+import com.surequinos.surequinos_backend.domain.enums.UserRole;
+import com.surequinos.surequinos_backend.domain.enums.UserStatus;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -189,6 +191,77 @@ public class UserController {
             log.warn("Usuario no encontrado: {}", id);
             return ResponseEntity.notFound().build();
         }
+    }
+
+    @Operation(summary = "Búsqueda unificada de usuarios", 
+               description = """
+                   Endpoint unificado para buscar usuarios con todos los filtros posibles. 
+                   Todos los parámetros son opcionales y se combinan con AND (todos deben cumplirse).
+                   
+                   **Filtros disponibles:**
+                   - **Texto**: name, email, documentNumber, phoneNumber (búsqueda parcial, case-insensitive)
+                   - **Roles**: roles (múltiples roles separados por comas - filtro OR)
+                   - **Estados**: statuses (múltiples estados separados por comas - filtro OR)
+                   - **Fechas**: startDate, endDate (rango de fechas de creación)
+                   
+                   **Ejemplos de uso:**
+                   - Solo clientes activos: `?roles=CLIENTE&statuses=ACTIVE`
+                   - Clientes e inactivos: `?roles=CLIENTE&statuses=ACTIVE,INACTIVE`
+                   - Administradores creados en noviembre: `?roles=ADMIN&startDate=2024-11-01T00:00:00&endDate=2024-11-30T23:59:59`
+                   - Buscar por nombre y rol: `?name=Juan&roles=CLIENTE`
+                   """)
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Usuarios encontrados exitosamente"),
+        @ApiResponse(responseCode = "400", description = "Parámetros inválidos (fechas mal formateadas, etc.)"),
+        @ApiResponse(responseCode = "500", description = "Error interno del servidor")
+    })
+    @GetMapping("/search")
+    public ResponseEntity<List<UserDto>> searchUsers(
+            @Parameter(description = "Nombre del usuario (búsqueda parcial, case-insensitive)", example = "Juan")
+            @RequestParam(required = false) String name,
+            @Parameter(description = "Email del usuario (búsqueda parcial, case-insensitive)", example = "juan@example.com")
+            @RequestParam(required = false) String email,
+            @Parameter(description = "Número de documento del usuario (búsqueda parcial)", example = "1234567890")
+            @RequestParam(required = false) String documentNumber,
+            @Parameter(description = "Número de teléfono del usuario (búsqueda parcial)", example = "3001234567")
+            @RequestParam(required = false) String phoneNumber,
+            @Parameter(description = "Rol(es) del usuario. Múltiples valores separados por comas. Valores: ADMIN, CLIENTE", example = "CLIENTE")
+            @RequestParam(required = false) List<UserRole> roles,
+            @Parameter(description = "Estado(s) del usuario. Múltiples valores separados por comas. Valores: ACTIVE, INACTIVE, DELETED", example = "ACTIVE")
+            @RequestParam(required = false) List<UserStatus> statuses,
+            @Parameter(description = "Fecha de inicio del rango (ISO 8601)", example = "2024-11-01T00:00:00")
+            @RequestParam(required = false) String startDate,
+            @Parameter(description = "Fecha de fin del rango (ISO 8601)", example = "2024-11-30T23:59:59")
+            @RequestParam(required = false) String endDate) {
+        log.info("GET /users/search - Buscando usuarios con criterios: name={}, email={}, documentNumber={}, phoneNumber={}, roles={}, statuses={}, startDate={}, endDate={}", 
+                name, email, documentNumber, phoneNumber, roles, statuses, startDate, endDate);
+        
+        // Parsear fechas si se proporcionan
+        java.time.LocalDateTime start = null;
+        java.time.LocalDateTime end = null;
+        
+        try {
+            if (startDate != null && !startDate.isEmpty()) {
+                start = java.time.LocalDateTime.parse(startDate);
+            }
+            if (endDate != null && !endDate.isEmpty()) {
+                end = java.time.LocalDateTime.parse(endDate);
+            }
+            
+            // Validar que la fecha de inicio sea anterior a la fecha de fin
+            if (start != null && end != null && start.isAfter(end)) {
+                log.warn("Fecha de inicio es posterior a la fecha de fin");
+                return ResponseEntity.badRequest().build();
+            }
+        } catch (java.time.format.DateTimeParseException e) {
+            log.warn("Error parseando fechas: {}", e.getMessage());
+            return ResponseEntity.badRequest().build();
+        }
+        
+        List<UserDto> users = userService.searchUsers(name, email, documentNumber, phoneNumber, roles, statuses, start, end);
+        
+        log.info("Retornando {} usuarios encontrados", users.size());
+        return ResponseEntity.ok(users);
     }
 }
 

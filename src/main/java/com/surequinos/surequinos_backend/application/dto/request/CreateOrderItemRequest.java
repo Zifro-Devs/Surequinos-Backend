@@ -21,7 +21,7 @@ import java.util.UUID;
 public class CreateOrderItemRequest {
 
     @NotNull(message = "El ID de la variante es obligatorio")
-    @Schema(description = "ID de la variante del producto", example = "123e4567-e89b-12d3-a456-426614174000", required = true)
+    @Schema(description = "ID de la variante del producto", example = "750e8400-e29b-41d4-a716-446655440001", required = true)
     private UUID variantId;
 
     @NotNull(message = "La cantidad es obligatoria")

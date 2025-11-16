@@ -50,6 +50,9 @@ public class Order {
     @Builder.Default
     private String paymentStatus = "PENDING"; // PENDING, PAID, FAILED, REFUNDED
 
+    @Column(name = "payment_method", length = 100)
+    private String paymentMethod; // Ej: "TARJETA_CREDITO", "TARJETA_DEBITO", "EFECTIVO", "TRANSFERENCIA", etc.
+
     @Column(name = "shipping_value", precision = 10, scale = 2)
     @Builder.Default
     private BigDecimal shippingValue = BigDecimal.ZERO;

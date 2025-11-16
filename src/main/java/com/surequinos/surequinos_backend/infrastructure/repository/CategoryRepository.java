@@ -44,6 +44,8 @@ public interface CategoryRepository extends JpaRepository<Category, UUID> {
 
     /**
      * Obtiene categorías con conteo de productos
+     * IMPORTANTE: El orden de las columnas debe coincidir con mapCategoryWithProductCount
+     * Orden: id, parent_id, name, slug, display_order, created_at, product_count
      */
     @Query(value = """
         SELECT c.id,

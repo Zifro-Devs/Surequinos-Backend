@@ -94,8 +94,18 @@ public class UserController {
             });
     }
 
-    @Operation(summary = "Crear nuevo usuario", 
-               description = "Crea un nuevo usuario/cliente en el sistema")
+    @Operation(
+        summary = "Crear nuevo usuario", 
+        description = """
+            Crea un nuevo usuario/cliente en el sistema.
+            
+            **Rol del usuario:**
+            - `ADMIN`: Administrador del sistema
+            - `CLIENTE`: Cliente que puede realizar compras
+            
+            El rol se especifica usando el enum UserRole (ADMIN o CLIENTE).
+            """
+    )
     @ApiResponses(value = {
         @ApiResponse(responseCode = "201", description = "Usuario creado exitosamente"),
         @ApiResponse(responseCode = "400", description = "Datos de entrada inválidos"),
@@ -104,7 +114,10 @@ public class UserController {
     })
     @PostMapping
     public ResponseEntity<UserDto> createUser(
-            @Parameter(description = "Datos del nuevo usuario")
+            @Parameter(
+                description = "Datos del nuevo usuario. El campo 'role' debe ser 'ADMIN' o 'CLIENTE'",
+                required = true
+            )
             @Valid @RequestBody CreateUserRequest request) {
         log.info("POST /users - Creando nuevo usuario: {}", request.getEmail());
         

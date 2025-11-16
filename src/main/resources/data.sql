@@ -87,62 +87,62 @@ ON CONFLICT (slug) DO NOTHING;
 -- ============================================
 
 -- Colores
-INSERT INTO attribute_options (attribute_name, value, display_order) VALUES
-('color', 'Roble', 1),
-('color', 'Chocolate', 2),
-('color', 'Negro', 3),
-('color', 'Blanco', 4),
-('color', 'Rojo', 5),
-('color', 'Azul', 6),
-('color', 'Verde', 7),
-('color', 'Naranja', 8),
-('color', 'Fucsia', 9),
-('color', 'Dorada', 10),
-('color', 'Café', 11),
-('color', 'Gris', 12),
-('color', 'Amarilla', 13)
+INSERT INTO attribute_options (id, attribute_name, value, display_order) VALUES
+(gen_random_uuid(), 'color', 'Roble', 1),
+(gen_random_uuid(), 'color', 'Chocolate', 2),
+(gen_random_uuid(), 'color', 'Negro', 3),
+(gen_random_uuid(), 'color', 'Blanco', 4),
+(gen_random_uuid(), 'color', 'Rojo', 5),
+(gen_random_uuid(), 'color', 'Azul', 6),
+(gen_random_uuid(), 'color', 'Verde', 7),
+(gen_random_uuid(), 'color', 'Naranja', 8),
+(gen_random_uuid(), 'color', 'Fucsia', 9),
+(gen_random_uuid(), 'color', 'Dorada', 10),
+(gen_random_uuid(), 'color', 'Café', 11),
+(gen_random_uuid(), 'color', 'Gris', 12),
+(gen_random_uuid(), 'color', 'Amarilla', 13)
 ON CONFLICT (attribute_name, value) DO NOTHING;
 
 -- Tallas sillas (con medios)
-INSERT INTO attribute_options (attribute_name, value, display_order) VALUES
-('size', '12"', 1),
-('size', '12.5"', 2),
-('size', '13"', 3),
-('size', '13.5"', 4),
-('size', '14"', 5),
-('size', '14.5"', 6),
-('size', '15"', 7),
-('size', '15.5"', 8),
-('size', '16"', 9),
-('size', '17"', 10)
+INSERT INTO attribute_options (id, attribute_name, value, display_order) VALUES
+(gen_random_uuid(), 'size', '12"', 1),
+(gen_random_uuid(), 'size', '12.5"', 2),
+(gen_random_uuid(), 'size', '13"', 3),
+(gen_random_uuid(), 'size', '13.5"', 4),
+(gen_random_uuid(), 'size', '14"', 5),
+(gen_random_uuid(), 'size', '14.5"', 6),
+(gen_random_uuid(), 'size', '15"', 7),
+(gen_random_uuid(), 'size', '15.5"', 8),
+(gen_random_uuid(), 'size', '16"', 9),
+(gen_random_uuid(), 'size', '17"', 10)
 ON CONFLICT (attribute_name, value) DO NOTHING;
 
 -- Tallas sombreros
-INSERT INTO attribute_options (attribute_name, value, display_order) VALUES
-('size', '53', 20),
-('size', '54', 21),
-('size', '55', 22),
-('size', '56', 23),
-('size', '57', 24),
-('size', '58', 25),
-('size', '59', 26),
-('size', '60', 27)
+INSERT INTO attribute_options (id, attribute_name, value, display_order) VALUES
+(gen_random_uuid(), 'size', '53', 20),
+(gen_random_uuid(), 'size', '54', 21),
+(gen_random_uuid(), 'size', '55', 22),
+(gen_random_uuid(), 'size', '56', 23),
+(gen_random_uuid(), 'size', '57', 24),
+(gen_random_uuid(), 'size', '58', 25),
+(gen_random_uuid(), 'size', '59', 26),
+(gen_random_uuid(), 'size', '60', 27)
 ON CONFLICT (attribute_name, value) DO NOTHING;
 
 -- Tipos
-INSERT INTO attribute_options (attribute_name, value, display_order) VALUES
-('type', 'Americana', 1),
-('type', 'Trenzada', 2),
-('type', 'Nacional', 3),
-('type', 'Sencillo', 4),
-('type', 'Peluche', 5),
-('type', 'De Lujo', 6),
-('type', 'Timbiano', 7),
-('type', 'Tipo Timbiano', 8),
-('type', 'Plano', 9),
-('type', 'Lumillado', 10),
-('type', 'Combinado', 11),
-('type', 'De Nudos en Hilo', 12)
+INSERT INTO attribute_options (id, attribute_name, value, display_order) VALUES
+(gen_random_uuid(), 'type', 'Americana', 1),
+(gen_random_uuid(), 'type', 'Trenzada', 2),
+(gen_random_uuid(), 'type', 'Nacional', 3),
+(gen_random_uuid(), 'type', 'Sencillo', 4),
+(gen_random_uuid(), 'type', 'Peluche', 5),
+(gen_random_uuid(), 'type', 'De Lujo', 6),
+(gen_random_uuid(), 'type', 'Timbiano', 7),
+(gen_random_uuid(), 'type', 'Tipo Timbiano', 8),
+(gen_random_uuid(), 'type', 'Plano', 9),
+(gen_random_uuid(), 'type', 'Lumillado', 10),
+(gen_random_uuid(), 'type', 'Combinado', 11),
+(gen_random_uuid(), 'type', 'De Nudos en Hilo', 12)
 ON CONFLICT (attribute_name, value) DO NOTHING;
 
 -- ============================================

@@ -7,15 +7,20 @@ import com.surequinos.surequinos_backend.application.mapper.OrderItemMapper;
 import com.surequinos.surequinos_backend.application.mapper.OrderMapper;
 import com.surequinos.surequinos_backend.domain.entity.Order;
 import com.surequinos.surequinos_backend.domain.entity.OrderItem;
+import com.surequinos.surequinos_backend.domain.entity.Role;
+import com.surequinos.surequinos_backend.domain.entity.User;
 import com.surequinos.surequinos_backend.domain.entity.Variant;
+import com.surequinos.surequinos_backend.domain.enums.UserRole;
 import com.surequinos.surequinos_backend.infrastructure.repository.OrderItemRepository;
 import com.surequinos.surequinos_backend.infrastructure.repository.OrderRepository;
+import com.surequinos.surequinos_backend.infrastructure.repository.RoleRepository;
 import com.surequinos.surequinos_backend.infrastructure.repository.UserRepository;
 import com.surequinos.surequinos_backend.infrastructure.repository.VariantRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,9 +44,11 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
     private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
     private final VariantRepository variantRepository;
     private final OrderMapper orderMapper;
     private final OrderItemMapper orderItemMapper;
+    private final PasswordEncoder passwordEncoder;
 
     /**
      * Genera un número de orden único
@@ -54,16 +61,73 @@ public class OrderService {
     }
 
     /**
+     * Busca o crea un usuario basado en email y documento
+     */
+    private UUID findOrCreateUser(String email, String documentNumber, String name, String phoneNumber) {
+        log.debug("Buscando usuario con email: {} y documento: {}", email, documentNumber);
+        
+        // Buscar usuario existente por email y documento
+        Optional<User> existingUser = userRepository.findByEmailAndDocumentNumber(email, documentNumber);
+        
+        if (existingUser.isPresent()) {
+            log.info("Usuario encontrado: {} (ID: {})", email, existingUser.get().getId());
+            return existingUser.get().getId();
+        }
+        
+        // Si no existe, crear nuevo usuario
+        log.info("Usuario no encontrado. Creando nuevo usuario con email: {} y documento: {}", email, documentNumber);
+        
+        // Obtener o crear el rol CLIENTE
+        UUID roleId = roleRepository.findByUserRole(UserRole.CLIENTE)
+            .map(Role::getId)
+            .orElseGet(() -> {
+                log.warn("Rol CLIENTE no encontrado. Creándolo...");
+                Role newRole = Role.builder()
+                    .name(UserRole.CLIENTE)
+                    .description(UserRole.CLIENTE.getDisplayName())
+                    .build();
+                Role savedRole = roleRepository.save(newRole);
+                log.info("Rol CLIENTE creado con ID: {}", savedRole.getId());
+                return savedRole.getId();
+            });
+        
+        // Crear nuevo usuario con valores por defecto si no se proporcionan
+        String userName = (name != null && !name.isEmpty()) ? name : "Cliente " + documentNumber;
+        String userPhone = (phoneNumber != null && !phoneNumber.isEmpty()) ? phoneNumber : null;
+        
+        // La contraseña será el número de documento encriptado
+        String password = passwordEncoder.encode(documentNumber);
+        
+        User newUser = User.builder()
+            .name(userName)
+            .email(email)
+            .documentNumber(documentNumber)
+            .phoneNumber(userPhone)
+            .password(password)
+            .roleId(roleId)
+            .build();
+        
+        User savedUser = userRepository.save(newUser);
+        log.info("Usuario creado exitosamente: {} (ID: {})", savedUser.getEmail(), savedUser.getId());
+        
+        return savedUser.getId();
+    }
+
+    /**
      * Crea una nueva orden
      */
     @Transactional
     public OrderDto createOrder(CreateOrderRequest request) {
-        log.debug("Creando nueva orden para usuario: {}", request.getUserId());
+        log.debug("Creando nueva orden para cliente con email: {} y documento: {}", 
+                request.getEmail(), request.getDocumentNumber());
         
-        // Validar que el usuario exista
-        if (!userRepository.existsById(request.getUserId())) {
-            throw new IllegalArgumentException("El usuario no existe: " + request.getUserId());
-        }
+        // Buscar o crear el usuario
+        UUID userId = findOrCreateUser(
+            request.getEmail(), 
+            request.getDocumentNumber(),
+            request.getClientName(),
+            request.getClientPhoneNumber()
+        );
         
         // Validar y procesar items
         BigDecimal subtotal = BigDecimal.ZERO;
@@ -78,11 +142,10 @@ public class OrderService {
                     throw new IllegalArgumentException("La variante no está activa: " + itemRequest.getVariantId());
                 }
                 
-                // Validar stock disponible
+                // Nota: Se permite crear órdenes incluso con stock insuficiente (stock negativo permitido)
                 if (variant.getStock() < itemRequest.getQuantity()) {
-                    throw new IllegalArgumentException(
-                        String.format("Stock insuficiente para la variante %s. Disponible: %d, Solicitado: %d",
-                            variant.getSku(), variant.getStock(), itemRequest.getQuantity()));
+                    log.warn("Stock insuficiente para la variante {} (SKU: {}). Disponible: {}, Solicitado: {}. Se permitirá stock negativo.",
+                            itemRequest.getVariantId(), variant.getSku(), variant.getStock(), itemRequest.getQuantity());
                 }
                 
                 // Calcular precios
@@ -120,10 +183,11 @@ public class OrderService {
         // Crear la orden
         Order order = Order.builder()
             .orderNumber(orderNumber)
-            .userId(request.getUserId())
+            .userId(userId)
             .discountValue(request.getDiscountValue() != null ? request.getDiscountValue() : BigDecimal.ZERO)
             .notes(request.getNotes())
             .paymentStatus("PENDING")
+            .paymentMethod(request.getPaymentMethod())
             .shippingValue(request.getShippingValue() != null ? request.getShippingValue() : BigDecimal.ZERO)
             .status("PENDING")
             .subtotal(subtotal)
@@ -220,6 +284,47 @@ public class OrderService {
         log.debug("Obteniendo órdenes por estado de pago: {}", paymentStatus);
         
         List<Order> orders = orderRepository.findByPaymentStatus(paymentStatus);
+        return orders.stream()
+            .map(this::enrichOrderDto)
+            .collect(Collectors.toList());
+    }
+
+    /**
+     * Busca órdenes por múltiples criterios
+     */
+    public List<OrderDto> searchOrders(UUID orderId, String orderNumber, String clientName, 
+                                      String email, String documentNumber, String phoneNumber) {
+        log.debug("Buscando órdenes - orderId: {}, orderNumber: {}, clientName: {}, email: {}, documentNumber: {}, phoneNumber: {}", 
+                orderId, orderNumber, clientName, email, documentNumber, phoneNumber);
+        
+        String orderIdStr = orderId != null ? orderId.toString() : null;
+        
+        List<Order> orders = orderRepository.searchOrders(
+            orderIdStr,
+            orderNumber,
+            clientName,
+            email,
+            documentNumber,
+            phoneNumber
+        );
+        
+        log.info("Encontradas {} órdenes con los criterios de búsqueda", orders.size());
+        
+        return orders.stream()
+            .map(this::enrichOrderDto)
+            .collect(Collectors.toList());
+    }
+
+    /**
+     * Obtiene órdenes por rango de fechas
+     */
+    public List<OrderDto> getOrdersByDateRange(LocalDateTime startDate, LocalDateTime endDate) {
+        log.debug("Obteniendo órdenes por rango de fechas: desde {} hasta {}", startDate, endDate);
+        
+        List<Order> orders = orderRepository.findByDateRange(startDate, endDate);
+        
+        log.info("Encontradas {} órdenes en el rango de fechas", orders.size());
+        
         return orders.stream()
             .map(this::enrichOrderDto)
             .collect(Collectors.toList());

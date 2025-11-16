@@ -12,15 +12,22 @@ import java.net.UnknownHostException;
 
 /**
  * Clase principal de la aplicación Surequinos Backend
- * Ecommerce de productos de talabartería con gestión completa de productos, variantes y categorías
+ * Ecommerce de productos de talabartería con gestión completa de:
+ * - Productos, variantes y categorías
+ * - Órdenes de compra con gestión de stock
+ * - Usuarios y roles (ADMIN, CLIENTE)
+ * - Sistema de imágenes con Cloudflare R2
  */
 @SpringBootApplication
 @Slf4j
 @OpenAPIDefinition(
     info = @Info(
         title = "Surequinos Ecommerce API",
-        version = "1.0.0",
-        description = "API REST para ecommerce de productos de talabartería"
+        version = "2.0.0",
+        description = """
+            API REST completa para ecommerce de productos de talabartería.
+            Incluye gestión de productos, variantes, órdenes, usuarios y roles.
+            """
     )
 )
 public class SurequinosBackendApplication {

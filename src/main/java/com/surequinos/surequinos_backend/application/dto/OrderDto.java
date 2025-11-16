@@ -39,6 +39,9 @@ public class OrderDto {
     @Schema(description = "Estado del pago", example = "PAID", allowableValues = {"PENDING", "PAID", "FAILED", "REFUNDED"})
     private String paymentStatus;
 
+    @Schema(description = "Método de pago utilizado", example = "TARJETA_CREDITO")
+    private String paymentMethod;
+
     @Schema(description = "Valor del envío", example = "15000.00")
     private BigDecimal shippingValue;
 

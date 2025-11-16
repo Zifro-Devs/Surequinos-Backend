@@ -48,11 +48,11 @@ public interface CategoryRepository extends JpaRepository<Category, UUID> {
      * Orden: id, parent_id, name, slug, display_order, created_at, product_count
      */
     @Query(value = """
-        SELECT c.id, 
-               c.parent_id, 
-               c.name, 
-               c.slug, 
-               c.display_order, 
+        SELECT c.id,
+               c.parent_id,
+               c.name,
+               c.slug,
+               c.display_order,
                c.created_at,
                COALESCE(COUNT(p.id), 0) as product_count
         FROM categories c

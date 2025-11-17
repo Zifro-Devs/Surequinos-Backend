@@ -64,12 +64,21 @@ public class ImageService {
      * Sube una imagen específica de variante
      */
     public String uploadVariantImage(MultipartFile file, UUID productId, String variantSku) throws IOException {
+        log.info("Iniciando subida de imagen de variante - SKU: {}, Producto: {}, Archivo: {}", 
+                variantSku, productId, file.getOriginalFilename());
+        
         validateFile(file);
         
         String fileName = generateVariantImageFileName(productId, variantSku, file.getOriginalFilename());
         String key = "variants/" + fileName;
         
-        return uploadFile(file, key);
+        log.info("Nombre de archivo generado: {}, Key: {}", fileName, key);
+        
+        String url = uploadFile(file, key);
+        
+        log.info("Imagen de variante subida exitosamente - URL: {}", url);
+        
+        return url;
     }
 
     /**

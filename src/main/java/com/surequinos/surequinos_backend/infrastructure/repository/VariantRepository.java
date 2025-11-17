@@ -30,7 +30,7 @@ public interface VariantRepository extends JpaRepository<Variant, UUID> {
     @Query(value = """
         SELECT * FROM variants 
         WHERE product_id = :productId AND is_active = true 
-        ORDER BY color ASC, size ASC, type ASC
+        ORDER BY attributes->>'color' ASC, attributes->>'size' ASC
         """, nativeQuery = true)
     List<Variant> findActiveVariantsByProductId(@Param("productId") UUID productId);
 
@@ -42,7 +42,7 @@ public interface VariantRepository extends JpaRepository<Variant, UUID> {
         WHERE product_id = :productId 
         AND is_active = true 
         AND stock > 0 
-        ORDER BY color ASC, size ASC, type ASC
+        ORDER BY attributes->>'color' ASC, attributes->>'size' ASC
         """, nativeQuery = true)
     List<Variant> findAvailableVariantsByProductId(@Param("productId") UUID productId);
 
@@ -53,16 +53,14 @@ public interface VariantRepository extends JpaRepository<Variant, UUID> {
         SELECT * FROM variants 
         WHERE product_id = :productId 
         AND is_active = true
-        AND (:color IS NULL OR color = :color)
-        AND (:size IS NULL OR size = :size)
-        AND (:type IS NULL OR type = :type)
+        AND (:color IS NULL OR attributes->>'color' = :color)
+        AND (:size IS NULL OR attributes->>'size' = :size)
         ORDER BY price ASC
         """, nativeQuery = true)
     List<Variant> findVariantsByAttributes(
         @Param("productId") UUID productId,
         @Param("color") String color,
-        @Param("size") String size,
-        @Param("type") String type
+        @Param("size") String size
     );
 
     /**
@@ -136,13 +134,13 @@ public interface VariantRepository extends JpaRepository<Variant, UUID> {
      * Obtiene colores disponibles para un producto
      */
     @Query(value = """
-        SELECT DISTINCT color 
+        SELECT DISTINCT attributes->>'color' as color
         FROM variants 
         WHERE product_id = :productId 
         AND is_active = true 
-        AND color IS NOT NULL
+        AND attributes->>'color' IS NOT NULL
         AND stock > 0
-        ORDER BY color ASC
+        ORDER BY attributes->>'color' ASC
         """, nativeQuery = true)
     List<String> findAvailableColorsByProductId(@Param("productId") UUID productId);
 
@@ -150,31 +148,19 @@ public interface VariantRepository extends JpaRepository<Variant, UUID> {
      * Obtiene tallas disponibles para un producto y color específico
      */
     @Query(value = """
-        SELECT DISTINCT size 
+        SELECT DISTINCT attributes->>'size' as size
         FROM variants 
         WHERE product_id = :productId 
         AND is_active = true 
-        AND size IS NOT NULL
+        AND attributes->>'size' IS NOT NULL
         AND stock > 0
-        AND (:color IS NULL OR color = :color)
-        ORDER BY size ASC
+        AND (:color IS NULL OR attributes->>'color' = :color)
+        ORDER BY attributes->>'size' ASC
         """, nativeQuery = true)
     List<String> findAvailableSizesByProductIdAndColor(
         @Param("productId") UUID productId, 
         @Param("color") String color
     );
 
-    /**
-     * Obtiene tipos disponibles para un producto
-     */
-    @Query(value = """
-        SELECT DISTINCT type 
-        FROM variants 
-        WHERE product_id = :productId 
-        AND is_active = true 
-        AND type IS NOT NULL
-        AND stock > 0
-        ORDER BY type ASC
-        """, nativeQuery = true)
-    List<String> findAvailableTypesByProductId(@Param("productId") UUID productId);
+
 }

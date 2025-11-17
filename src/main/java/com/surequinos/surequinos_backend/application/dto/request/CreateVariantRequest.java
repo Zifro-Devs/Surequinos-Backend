@@ -37,9 +37,6 @@ public class CreateVariantRequest {
     @Schema(description = "Talla de la variante", example = "14\"")
     private String size;
 
-    @Schema(description = "Tipo de la variante", example = "Americana")
-    private String type;
-
     @NotNull(message = "El precio es obligatorio")
     @Positive(message = "El precio debe ser positivo")
     @Schema(description = "Precio de la variante", example = "850000.00", required = true)

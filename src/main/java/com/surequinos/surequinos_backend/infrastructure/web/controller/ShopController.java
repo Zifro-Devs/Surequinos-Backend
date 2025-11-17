@@ -188,11 +188,10 @@ public class ShopController {
         VariantOptionsDto options = VariantOptionsDto.builder()
             .colors(variantService.getAvailableColorsByProductId(productId))
             .sizes(variantService.getAvailableSizesByProductIdAndColor(productId, null))
-            .types(variantService.getAvailableTypesByProductId(productId))
             .build();
         
-        log.info("Retornando opciones: {} colores, {} tallas, {} tipos", 
-                options.getColors().size(), options.getSizes().size(), options.getTypes().size());
+        log.info("Retornando opciones: {} colores, {} tallas", 
+                options.getColors().size(), options.getSizes().size());
         
         return ResponseEntity.ok(options);
     }
@@ -211,15 +210,13 @@ public class ShopController {
             @Parameter(description = "Color de la variante")
             @RequestParam(required = false) String color,
             @Parameter(description = "Talla de la variante")
-            @RequestParam(required = false) String size,
-            @Parameter(description = "Tipo de la variante")
-            @RequestParam(required = false) String type) {
+            @RequestParam(required = false) String size) {
         
-        log.info("GET /shop/products/{}/variant-image - Obteniendo imagen de variante (color: {}, talla: {}, tipo: {})", 
-                productId, color, size, type);
+        log.info("GET /shop/products/{}/variant-image - Obteniendo imagen de variante (color: {}, talla: {})", 
+                productId, color, size);
         
         // Buscar variantes que coincidan con los atributos
-        List<VariantDto> matchingVariants = variantService.getVariantsByAttributes(productId, color, size, type);
+        List<VariantDto> matchingVariants = variantService.getVariantsByAttributes(productId, color, size);
         
         if (matchingVariants.isEmpty()) {
             log.warn("No se encontraron variantes para los atributos especificados");
@@ -238,7 +235,6 @@ public class ShopController {
             .imageUrl(variantWithImage.getImageUrl())
             .color(variantWithImage.getColor())
             .size(variantWithImage.getSize())
-            .type(variantWithImage.getType())
             .price(variantWithImage.getPrice())
             .stock(variantWithImage.getStock())
             .available(variantWithImage.getAvailable())
@@ -258,7 +254,6 @@ public class ShopController {
     public static class VariantOptionsDto {
         private List<String> colors;
         private List<String> sizes;
-        private List<String> types;
     }
 
     /**
@@ -274,7 +269,6 @@ public class ShopController {
         private String imageUrl;
         private String color;
         private String size;
-        private String type;
         private BigDecimal price;
         private Integer stock;
         private Boolean available;

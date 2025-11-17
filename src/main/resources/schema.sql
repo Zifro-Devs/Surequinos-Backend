@@ -6,6 +6,7 @@
 DROP VIEW IF EXISTS v_products_full;
 
 -- Crear vista con información completa de productos
+-- ACTUALIZADA para usar el campo attributes (JSONB)
 CREATE VIEW v_products_full AS
 SELECT 
     p.id,
@@ -24,16 +25,17 @@ SELECT
             json_build_object(
                 'id', v.id,
                 'sku', v.sku,
-                'color', v.color,
-                'size', v.size,
-                'type', v.type,
+                'attributes', v.attributes,
+                'color', v.attributes->>'color',
+                'size', v.attributes->>'size',
+                'type', v.attributes->>'type',
                 'price', v.price,
                 'stock', v.stock,
                 'imageUrl', v.image_url,
                 'isActive', v.is_active,
                 'available', v.stock > 0 AND v.is_active,
                 'createdAt', v.created_at
-            ) ORDER BY v.color, v.size, v.type
+            ) ORDER BY v.attributes->>'color', v.attributes->>'size', v.attributes->>'type'
         ) FILTER (WHERE v.id IS NOT NULL),
         '[]'::json
     ) AS variants,

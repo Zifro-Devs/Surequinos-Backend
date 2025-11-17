@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -26,14 +27,16 @@ public class VariantDto {
     @Schema(description = "SKU único de la variante", example = "SIL-CAU-ROBLE-14")
     private String sku;
 
-    @Schema(description = "Color de la variante", example = "Roble")
+    @Schema(description = "Atributos dinámicos de la variante en formato JSON", 
+            example = "{\"color\": \"Roble\", \"color_hex\": \"#C4622D\", \"size\": \"14\\\"\", \"type\": \"Americana\"}")
+    private Map<String, Object> attributes;
+
+    // Campos de compatibilidad (se extraen de attributes)
+    @Schema(description = "Color de la variante (extraído de attributes)", example = "Roble")
     private String color;
 
-    @Schema(description = "Talla de la variante", example = "14\"")
+    @Schema(description = "Talla de la variante (extraído de attributes)", example = "14\"")
     private String size;
-
-    @Schema(description = "Tipo de la variante", example = "Americana")
-    private String type;
 
     @Schema(description = "Precio de la variante", example = "850000.00")
     private BigDecimal price;

@@ -72,11 +72,11 @@ public class VariantService {
     /**
      * Busca variantes por atributos específicos
      */
-    public List<VariantDto> getVariantsByAttributes(UUID productId, String color, String size, String type) {
-        log.debug("Buscando variantes por atributos - Producto: {}, Color: {}, Talla: {}, Tipo: {}", 
-                 productId, color, size, type);
+    public List<VariantDto> getVariantsByAttributes(UUID productId, String color, String size) {
+        log.debug("Buscando variantes por atributos - Producto: {}, Color: {}, Talla: {}", 
+                 productId, color, size);
         
-        List<Variant> variants = variantRepository.findVariantsByAttributes(productId, color, size, type);
+        List<Variant> variants = variantRepository.findVariantsByAttributes(productId, color, size);
         return variantMapper.toDtoList(variants);
     }
 
@@ -98,9 +98,24 @@ public class VariantService {
         }
         
         Variant variant = variantMapper.toEntity(request);
+        
+        // FORZAR: Setear manualmente los atributos en el JSON
+        if (request.getColor() != null) {
+            variant.setColor(request.getColor());
+        }
+        if (request.getSize() != null) {
+            variant.setSize(request.getSize());
+        }
+        
+        // Asegurar que imageUrl se setee si viene en el request
+        if (request.getImageUrl() != null) {
+            variant.setImageUrl(request.getImageUrl());
+        }
+        
         Variant savedVariant = variantRepository.save(variant);
         
-        log.info("Variante creada exitosamente: {} (ID: {})", savedVariant.getSku(), savedVariant.getId());
+        log.info("Variante creada exitosamente: {} (ID: {}) con attributes: {}", 
+                savedVariant.getSku(), savedVariant.getId(), savedVariant.getAttributes());
         
         return variantMapper.toDto(savedVariant);
     }
@@ -130,7 +145,6 @@ public class VariantService {
         existingVariant.setSku(request.getSku());
         existingVariant.setColor(request.getColor());
         existingVariant.setSize(request.getSize());
-        existingVariant.setType(request.getType());
         existingVariant.setPrice(request.getPrice());
         existingVariant.setStock(request.getStock());
         existingVariant.setImageUrl(request.getImageUrl());
@@ -235,11 +249,4 @@ public class VariantService {
         return variantRepository.findAvailableSizesByProductIdAndColor(productId, color);
     }
 
-    /**
-     * Obtiene tipos disponibles para un producto
-     */
-    public List<String> getAvailableTypesByProductId(UUID productId) {
-        log.debug("Obteniendo tipos disponibles para producto ID: {}", productId);
-        return variantRepository.findAvailableTypesByProductId(productId);
-    }
 }

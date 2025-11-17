@@ -122,7 +122,7 @@ public class VariantController {
     }
 
     @Operation(summary = "Buscar variantes por atributos", 
-               description = "Busca variantes de un producto filtradas por color, talla y/o tipo")
+               description = "Busca variantes de un producto filtradas por color y/o talla")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Variantes encontradas"),
         @ApiResponse(responseCode = "500", description = "Error interno del servidor")
@@ -134,13 +134,11 @@ public class VariantController {
             @Parameter(description = "Color a filtrar (opcional)", example = "Roble")
             @RequestParam(required = false) String color,
             @Parameter(description = "Talla a filtrar (opcional)", example = "14\"")
-            @RequestParam(required = false) String size,
-            @Parameter(description = "Tipo a filtrar (opcional)", example = "Americana")
-            @RequestParam(required = false) String type) {
-        log.info("GET /variants/product/{}/search - Buscando variantes por atributos (color: {}, talla: {}, tipo: {})", 
-                productId, color, size, type);
+            @RequestParam(required = false) String size) {
+        log.info("GET /variants/product/{}/search - Buscando variantes por atributos (color: {}, talla: {})", 
+                productId, color, size);
         
-        List<VariantDto> variants = variantService.getVariantsByAttributes(productId, color, size, type);
+        List<VariantDto> variants = variantService.getVariantsByAttributes(productId, color, size);
         
         log.info("Retornando {} variantes que coinciden con los filtros", variants.size());
         return ResponseEntity.ok(variants);
@@ -190,45 +188,42 @@ public class VariantController {
             @RequestPart(value = "image", required = false) MultipartFile image) {
         
         log.info("POST /variants/with-image - Creando variante con imagen");
+        log.info("Imagen recibida: {} (size: {} bytes, contentType: {})", 
+                image != null ? image.getOriginalFilename() : "null",
+                image != null ? image.getSize() : 0,
+                image != null ? image.getContentType() : "null");
         
         try {
             // Parsear el JSON de la variante
             CreateVariantRequest variantRequest = objectMapper.readValue(variantJson, CreateVariantRequest.class);
             
-            log.info("Creando variante: {}", variantRequest.getSku());
+            log.info("Creando variante: {} para producto: {}", variantRequest.getSku(), variantRequest.getProductId());
             
-            // Crear la variante primero
-            VariantDto createdVariant = variantService.createVariant(variantRequest);
-            
-            // Subir imagen si se proporcionó
+            // Subir imagen PRIMERO si se proporcionó
+            String imageUrl = null;
             if (image != null && !image.isEmpty()) {
                 try {
-                    String imageUrl = imageService.uploadVariantImage(
-                        image, variantRequest.getProductId(), createdVariant.getSku());
+                    log.info("Subiendo imagen para variante {} antes de crear la variante...", variantRequest.getSku());
+                    imageUrl = imageService.uploadVariantImage(
+                        image, variantRequest.getProductId(), variantRequest.getSku());
+                    log.info("Imagen subida exitosamente: {}", imageUrl);
                     
-                    // Actualizar la variante con la URL de la imagen
-                    CreateVariantRequest updateRequest = CreateVariantRequest.builder()
-                        .productId(variantRequest.getProductId())
-                        .sku(variantRequest.getSku())
-                        .color(variantRequest.getColor())
-                        .size(variantRequest.getSize())
-                        .type(variantRequest.getType())
-                        .price(variantRequest.getPrice())
-                        .stock(variantRequest.getStock())
-                        .imageUrl(imageUrl)
-                        .isActive(variantRequest.getIsActive())
-                        .build();
-                    
-                    createdVariant = variantService.updateVariant(createdVariant.getId(), updateRequest);
-                    
-                    log.info("Variante creada con imagen: {} (ID: {})", 
-                            createdVariant.getSku(), createdVariant.getId());
+                    // Setear la URL de la imagen en el request
+                    variantRequest.setImageUrl(imageUrl);
                 } catch (Exception e) {
                     log.error("Error subiendo imagen para variante {}: {}", 
-                            createdVariant.getSku(), e.getMessage());
-                    // La variante ya fue creada, pero sin imagen
+                            variantRequest.getSku(), e.getMessage(), e);
+                    throw new RuntimeException("Error subiendo imagen: " + e.getMessage(), e);
                 }
+            } else {
+                log.warn("No se recibió imagen para la variante {}", variantRequest.getSku());
             }
+            
+            // Crear la variante con la URL de la imagen ya seteada
+            VariantDto createdVariant = variantService.createVariant(variantRequest);
+            
+            log.info("Variante creada exitosamente con imagen: {} (ID: {}, imageUrl: {})", 
+                    createdVariant.getSku(), createdVariant.getId(), createdVariant.getImageUrl());
             
             return ResponseEntity.status(HttpStatus.CREATED).body(createdVariant);
             
@@ -236,7 +231,7 @@ public class VariantController {
             log.warn("Error creando variante con imagen: {}", e.getMessage());
             return ResponseEntity.badRequest().build();
         } catch (Exception e) {
-            log.error("Error interno creando variante con imagen: {}", e.getMessage());
+            log.error("Error interno creando variante con imagen: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -390,24 +385,6 @@ public class VariantController {
         log.info("Retornando {} tallas disponibles para el producto {} y color {}", 
                 sizes.size(), productId, color);
         return ResponseEntity.ok(sizes);
-    }
-
-    @Operation(summary = "Obtener tipos disponibles", 
-               description = "Retorna los tipos disponibles (con stock) para un producto")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Tipos obtenidos exitosamente"),
-        @ApiResponse(responseCode = "500", description = "Error interno del servidor")
-    })
-    @GetMapping("/product/{productId}/types")
-    public ResponseEntity<List<String>> getAvailableTypes(
-            @Parameter(description = "ID del producto")
-            @PathVariable UUID productId) {
-        log.info("GET /variants/product/{}/types - Obteniendo tipos disponibles", productId);
-        
-        List<String> types = variantService.getAvailableTypesByProductId(productId);
-        
-        log.info("Retornando {} tipos disponibles para el producto {}", types.size(), productId);
-        return ResponseEntity.ok(types);
     }
 
     @Operation(summary = "Obtener variantes con stock bajo", 

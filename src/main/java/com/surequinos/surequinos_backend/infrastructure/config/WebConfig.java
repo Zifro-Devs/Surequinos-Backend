@@ -22,7 +22,7 @@ public class WebConfig implements WebMvcConfigurer {
             )
             .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
             .allowedHeaders("*")
-            .allowCredentials(false)  // Cambiado a false para evitar problemas con multipart
+            .allowCredentials(true)  // Habilitado para permitir cookies (carrito)
             .maxAge(3600);
     }
 }

@@ -84,14 +84,14 @@ spring.jpa.hibernate.ddl-auto=create-drop  # Para desarrollo
 server.port=8080
 server.servlet.context-path=/api
 
-# Cloudflare R2 Configuration
-cloudflare.r2.account-id=your-account-id
-cloudflare.r2.access-key-id=your-access-key-id
-cloudflare.r2.secret-access-key=your-secret-access-key
-cloudflare.r2.bucket-name=surequinos-images
-cloudflare.r2.region=auto
-cloudflare.r2.endpoint=https://your-account-id.r2.cloudflarestorage.com
-cloudflare.r2.public-url=https://your-custom-domain.com
+# Cloudflare R2 (prefijo surequinos.r2 — evita error Railpack "secret cloudflare: not found" en Railway)
+surequinos.r2.account-id=your-account-id
+surequinos.r2.access-key-id=your-access-key-id
+surequinos.r2.secret-access-key=your-secret-access-key
+surequinos.r2.bucket-name=surequinos-images
+surequinos.r2.region=auto
+surequinos.r2.endpoint=https://your-account-id.r2.cloudflarestorage.com
+surequinos.r2.public-url=https://your-custom-domain.com
 ```
 
 ### 3. Configuración de Cloudflare R2
@@ -100,7 +100,7 @@ cloudflare.r2.public-url=https://your-custom-domain.com
 2. **Crear bucket** llamado `surequinos-images`
 3. **Generar API Token** con permisos de lectura/escritura
 4. **Configurar dominio personalizado** para acceso público a imágenes
-5. **Actualizar credenciales** en `application.properties`
+5. **Actualizar credenciales** en `application-local.properties` (o variables `SUREQUINOS_R2_*` / `surequinos.r2.*` en Railway)
 
 ### 3. Ejecutar la Aplicación
 

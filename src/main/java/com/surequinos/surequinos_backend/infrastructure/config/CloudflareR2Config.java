@@ -15,7 +15,7 @@ import java.net.URI;
  * Configuración para Cloudflare R2 Storage
  */
 @Configuration
-@ConfigurationProperties(prefix = "cloudflare.r2")
+@ConfigurationProperties(prefix = "surequinos.r2")
 @Data
 public class CloudflareR2Config {
 

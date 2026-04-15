@@ -1,10 +1,10 @@
-# Repo raíz = carpeta del backend (como en GitHub).
-# Secrets en el repo → Settings → Secrets → Actions:
-#   RAILWAY_TOKEN, RAILWAY_SERVICE_ID
+# Repo raíz = carpeta del backend.
+# Secrets: RAILWAY_TOKEN, RAILWAY_SERVICE_ID
+# Railway: Root Directory vacío o "."
 #
-# En Railway: Root Directory vacío o "." (no uses Surequinos-Backend).
+# Job build: compila y testea. Job deploy: sube a Railway solo si build pasó.
 
-name: Deploy backend (Railway)
+name: Build and Deploy
 
 on:
   push:
@@ -25,7 +25,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build-and-deploy:
+  build:
+    name: Build (Maven)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -38,8 +39,20 @@ jobs:
           java-version: '21'
           cache: maven
 
+      # En Windows el bit ejecutable no siempre se guarda en Git → falla en Linux
+      - name: Make Maven wrapper executable
+        run: chmod +x mvnw
+
       - name: Build with Maven
         run: ./mvnw -B verify
+
+  deploy:
+    name: Deploy (Railway)
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Install Railway CLI
         run: npm install -g @railway/cli

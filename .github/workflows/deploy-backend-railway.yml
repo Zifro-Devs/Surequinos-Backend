@@ -1,0 +1,50 @@
+# Repo raíz = carpeta del backend (como en GitHub).
+# Secrets en el repo → Settings → Secrets → Actions:
+#   RAILWAY_TOKEN, RAILWAY_SERVICE_ID
+#
+# En Railway: Root Directory vacío o "." (no uses Surequinos-Backend).
+
+name: Deploy backend (Railway)
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - 'pom.xml'
+      - 'src/**'
+      - 'mvnw'
+      - 'mvnw.cmd'
+      - '.mvn/**'
+      - '.github/workflows/deploy-backend-railway.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: railway-backend-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Build with Maven
+        run: ./mvnw -B verify
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Deploy to Railway
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: railway up --service=${{ secrets.RAILWAY_SERVICE_ID }} --detach

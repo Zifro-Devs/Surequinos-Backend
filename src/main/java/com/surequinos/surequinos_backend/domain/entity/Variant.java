@@ -1,5 +1,6 @@
 package com.surequinos.surequinos_backend.domain.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -68,6 +69,17 @@ public class Variant {
     @Builder.Default
     private Boolean isActive = true;
 
+    // ========== CAMPOS DE PROMOCIÓN ==========
+    
+    @Column(name = "discount_percentage", precision = 5, scale = 2)
+    private BigDecimal discountPercentage;
+
+    @Column(name = "discount_start_date")
+    private LocalDateTime discountStartDate;
+
+    @Column(name = "discount_end_date")
+    private LocalDateTime discountEndDate;
+
     @CreationTimestamp
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -75,6 +87,7 @@ public class Variant {
     // Relación con producto
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_id", insertable = false, updatable = false)
+    @JsonIgnoreProperties({"category", "variants"})
     private Product product;
 
     // ========== MÉTODOS HELPER PARA COMPATIBILIDAD ==========
@@ -165,5 +178,50 @@ public class Variant {
      */
     public boolean isAvailable() {
         return stock > 0 && isActive;
+    }
+
+    /**
+     * Verifica si la variante tiene un descuento activo
+     */
+    public boolean hasActiveDiscount() {
+        if (discountPercentage == null || discountPercentage.compareTo(BigDecimal.ZERO) <= 0) {
+            return false;
+        }
+        
+        LocalDateTime now = LocalDateTime.now();
+        
+        // Si no hay fechas, el descuento está activo
+        if (discountStartDate == null && discountEndDate == null) {
+            return true;
+        }
+        
+        // Verificar rango de fechas
+        boolean afterStart = discountStartDate == null || now.isAfter(discountStartDate) || now.isEqual(discountStartDate);
+        boolean beforeEnd = discountEndDate == null || now.isBefore(discountEndDate) || now.isEqual(discountEndDate);
+        
+        return afterStart && beforeEnd;
+    }
+
+    /**
+     * Calcula el precio con descuento si aplica
+     */
+    public BigDecimal getDiscountedPrice() {
+        if (!hasActiveDiscount()) {
+            return price;
+        }
+        
+        BigDecimal discount = price.multiply(discountPercentage).divide(BigDecimal.valueOf(100));
+        return price.subtract(discount).setScale(2, BigDecimal.ROUND_HALF_UP);
+    }
+
+    /**
+     * Obtiene el monto del descuento
+     */
+    public BigDecimal getDiscountAmount() {
+        if (!hasActiveDiscount()) {
+            return BigDecimal.ZERO;
+        }
+        
+        return price.subtract(getDiscountedPrice());
     }
 }

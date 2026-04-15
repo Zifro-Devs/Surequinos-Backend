@@ -1,5 +1,6 @@
 package com.surequinos.surequinos_backend.domain.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -57,9 +58,11 @@ public class Product {
     // Relación con categoría
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id", insertable = false, updatable = false)
+    @JsonIgnoreProperties({"parent", "subcategories", "products"})
     private Category category;
 
     // Relación con variantes
     @OneToMany(mappedBy = "product", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @JsonIgnoreProperties({"product"})
     private List<Variant> variants;
 }

@@ -1,5 +1,6 @@
 package com.surequinos.surequinos_backend.domain.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -47,13 +48,16 @@ public class Category {
     // Relación con categoría padre
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_id", insertable = false, updatable = false)
+    @JsonIgnoreProperties({"parent", "subcategories", "products"})
     private Category parent;
 
     // Relación con subcategorías
     @OneToMany(mappedBy = "parent", fetch = FetchType.LAZY)
+    @JsonIgnoreProperties({"parent", "subcategories", "products"})
     private List<Category> subcategories;
 
     // Relación con productos
     @OneToMany(mappedBy = "category", fetch = FetchType.LAZY)
+    @JsonIgnoreProperties({"category", "variants"})
     private List<Product> products;
 }
